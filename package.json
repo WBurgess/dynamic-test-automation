@@ -4,6 +4,7 @@
   "license": "MIT",
   "version": "1.0.0",
   "description": "A framework for when you absolutely have to test every single thing",
+  "homepage": "https://github.com/WBurgess/dynamic-test-automation",
   "main": "./lib/index.js",
   "scripts": {
     "build": "babel src -d lib",
