@@ -1,23 +1,21 @@
 export class Operations {
   constructor(dimensions, options = {}) {
     this.dimensions = dimensions;
-    this.init = options.init || null;
-    this.teardown = options.teardown || null;
-    this.resetState = options.resetState || null;
-    this.settings = options.settings;
     this.operationMap = {};
     this.state;
+    this.settings = options.settings;
   }
 
-  mapOperation(dimensions, op) {
-    if (!Array.isArray(dimensions)) dimensions = [dimensions];
-    for (const dimension of dimensions) {
-      this.operationMap[dimension] = op;
-    }
+  mapOperation(dimension, op) {
+    this.operationMap[dimension] = op;
   }
 
   getOperation(dimension, property) {
-    return () => this.operationMap[dimension](dimension, property);
+    if (this.operationMap.hasOwnProperty(dimension)){
+      return () => this.operationMap[dimension](property);
+    } else {
+      throw new Error(`No operation defined for dimension "${dimension}"`);
+    }
   }
 
   * buildOperationSet(testCase) {
