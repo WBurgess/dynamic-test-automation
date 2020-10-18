@@ -1,5 +1,7 @@
 # Dynamic Test Automation
-The usual model for testing software is different variations of the same concept: test only what you need to. There is a cost to developing tests and this cost eats into developing the product. The goal of Dynamic Test Automation (DTA) is to take an old feature model and easily build out *every* possible permutation of tests for a given feature, without writing those tests "by hand".
+The usual model for testing software is different variations of the same concept: test only what you need to. There is a cost to developing tests and this cost eats into developing the product. The goal of Dynamic Test Automation (DTA) is to build out *every* possible permutation of tests for a given feature, without writing those tests "by hand".
+
+**DTA requires jest or mocha to run**, which should be installed and configured in your repo before installing DTA. A full standalone version is in the works, but for now DTA just hooks up to the globally exposed hooks from either of those modules.
 
 ## The Feature Model
 For this kind of testing, we use a simple feature model defined by the following properties:
@@ -29,7 +31,7 @@ bunType: "regular" - cheeseType: "cheddar" - veggies: "lettuce" - condiments: "k
 ```
 It is recommended that your dimensions are pulled from enums/constants from within the application so the generated tests update alongside your source.
 
-These test cases are mapped to callbacks via the Operations class. This is where you can pull in aplication code, mocks, etc and tie them to a dimension. For example:
+These test cases are mapped to callbacks via the Operations class. This is where you can pull in application code, mocks, etc and tie them to a dimension. For example:
 ##### operations.js
 ```javascript
 const ops = new Operations(Object.keys(dimensions));
@@ -39,8 +41,27 @@ When the class is parsing the test case above, it will run that callback when it
 
 A dynamic test cannot work without a callback provided for every dimension. It will throw an error if a dimension is encountered that does not have a registered callback.
 
+Operations are executed **in the order that the dimensions are defined.** This means that, in the above example `dimensions.js`, the execution order is: `bunType` -> `cheeseType` -> `veggies` -> `condiments` -> `meatType`. This allows authors to structure the operation callbacks in a co-dependent manner. Ideally, mocks can grease the wheels here.
+
 ## The dynamicTest helper 
-You can import `Generators` directly, and use it inside a regular test. A dynamic test has to be set up within a nested describe, within a loop:
+The `dynamicTest` helper takes care of test case construction and operation execution for you. It returns a `describe` definition using your test definition:
+```javascript
+dynamicTest(`Test E V E R Y T H I N G`, () => {
+  afterEach(() => {
+    // Reset initial state after each test
+    ops.state = {...initialStateObject};
+  });
+
+  // Each "test" will run against 540 different permutations of the initial state
+  test(`changeMeat() testing`, () => {
+    changeMeat(ops.state, 'tofu');
+    expect(ops.state.meatType).toEqual('tofu');
+  });
+});
+```
+Using `dynamicTest` requires that your `dimensions.js` and `operations.js` exist in the same directory as your test definition (for now). It also means that you cannot define a new `beforeEach()`, as it will overwrite the pre-built one.
+
+Alternatively, you can import `Generators` directly, and use it inside a regular test. A dynamic test has to be set up within a nested describe, within a loop:
 ```javascript
 const dimensions = require(`path-to-dimension.js`);
 const ops = require(`path-to-operations-instance`));
@@ -69,20 +90,3 @@ describe(`Test E V E R Y T H I N G`, () => {
     });
   }
 });
-```
-The `dynamicTest` takes care of test case construction and operation execution for you. It returns a `describe` definition using your test definition:
-```javascript
-dynamicTest(`Test E V E R Y T H I N G`, () => {
-  afterEach(() => {
-    // Reset initial state after each test
-    ops.state = {...initialStateObject};
-  });
-
-  // Each "test" will run against 540 different permutations of the initial state
-  test(`changeMeat() testing`, () => {
-    changeMeat(ops.state, 'tofu');
-    expect(ops.state.meatType).toEqual('tofu');
-  });
-});
-```
-Using `dynamicTest` requires that your `dimensions.js` and `operations.js` exist in the same directory as your test definition (for now). It also means that you cannot define a new `beforeEach()`, as it will overwrite the pre-built one.
